@@ -14,44 +14,14 @@ let chapterQuizDone = new Array(chapterQuizzes.length).fill(false);
 let chapterQuizAnswers = {};   // { 'chIdx_qi': { selected, isCorrect } }
 let fillAnswers = {};          // { idx: { value, correct } } —— 第 4 章收单动作填空
 let fillDone = false;
-let finalTaskSubmitted = false;
-let finalScore = 0;
-let finalBreakdown = null;
-let finalFeedbackText = '';
-let finalConversationStarted = false;
-let finalMessages = [];
-let finalRound = 0;
-let finalAiScoring = false;
-
-// ---------------- AI 后端 ----------------
-// A 档：密钥在构建期以 XOR+hex 混淆注入；未注入时 _rK() 返回空串 → AI 按钮置灰并降级
-const LLM_API_URL = APP.aiBaseUrl + '/chat/completions';
-const LLM_MODEL = APP.aiModel;
-const _HEX_KEY = '__MIMO_API_KEY__';
-const _SALT = 'vipthink-cn-lp-thinking';
-function _rK() {
-  if (!_HEX_KEY || _HEX_KEY.indexOf('__') === 0) return '';
-  let o = '';
-  for (let i = 0; i < _HEX_KEY.length; i += 2) {
-    const b = parseInt(_HEX_KEY.substr(i, 2), 16) ^ _SALT.charCodeAt((i / 2) % _SALT.length);
-    o += String.fromCharCode(b);
-  }
-  return o;
-}
-function aiReady() { return _rK().length > 10; }
-
-// 域名白名单（防止页面被搬运到其它站点后继续盗用对话额度）
-const ALLOWED_HOSTS = APP.allowedHosts;
-function guardHost() {
-  const h = location.hostname;
-  if (ALLOWED_HOSTS.indexOf(h) === -1) {
-    showToast('🔒 本课程仅限官方站点使用，AI 功能已停用', 'warning');
-    return false;
-  }
-  return true;
-}
 
 let studySeconds = 0; let timerInterval = null;
+
+// ---------------- 工具函数 ----------------
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 
 // ============================================================
 // 初始化
@@ -99,9 +69,6 @@ function renderSections() {
         '</div>' +
       '</div>' +
     '</div>').join('');
-  // 挂载终极考核的自由对话 UI
-  const rc = document.getElementById('roleplayContainer');
-  if (rc) rc.innerHTML = renderRoleplayHTML();
 }
 
 // 章节测验区块：选择题章节渲染选择题；第 4 章额外把填空题挂到 #fillQuizContainer4
@@ -572,19 +539,26 @@ function markComplete(index) {
   checkCertificate();
 }
 
-// 终极考核 = 第 5 章填空题（家长说明要点） + AI 家长自由对话评分
-// 说明：本章为纯内容+两个互动的收尾章；12 道选择题分散在第 1/2/3/4 章，各章「全部答对」即解锁下一章。
+// 终极考核 = 第 5 章填空题（家长说明要点） + 情境应答演练
+// 说明：本课为「复习」定位，不设 AI 家长对练。
+//      12 道选择题分散在第 1/2/3/4 章，各章「全部答对」即解锁下一章。
+//      第 5 章：4 个情境演练全过 + 3 道填空题全对 → 可完成课程。
 function finalQuizDone() {
-  // 末章若有测验题，需全部通过；本课末章无选择题，视为已满足
+  // 末章若无测验题，视为已满足
   const qs = chapterQuizzes[courseData.sections.length - 1] || [];
   return qs.length === 0 || !!chapterQuizDone[courseData.sections.length - 1];
 }
 function finalFillsDone() { return fillAllDone(); }
 
+function drillAllDone() {
+  const drills = APP.scenarioDrills || [];
+  return drills.length === 0 || drills.every(d => drillAnswers[d.id] && drillAnswers[d.id].passed);
+}
+function finalDrillsDone() { return drillAllDone(); }
+
 function tryCompleteCourse(index) {
   if (!finalFillsDone()) { showToast('请先完成第 5 章的填空题（全部答对）', 'warning'); return; }
-  if (!finalTaskSubmitted) { showToast('请先完成终极考核的 AI 家长对话并提交评分', 'warning'); return; }
-  if (finalScore < 60) { showToast('AI 对话评分尚未通过，请点击「重新开始」再试一次', 'warning'); return; }
+  if (!finalDrillsDone()) { showToast('请先完成全部情境应答演练', 'warning'); return; }
   markComplete(index);
 }
 
@@ -599,305 +573,6 @@ function updateProgress() {
   });
 }
 
-// ============================================================
-// AI 调用（含限流 / 域名白名单 / 降级）
-// ============================================================
-const RATE_LIMIT_KEY = LS_PREFIX + '_llm_rate_ts';
-const RATE_LIMIT_MAX = 100;
-const RATE_LIMIT_WINDOW = 3600000;
-function checkRateLimit() {
-  const now = Date.now();
-  let ts = [];
-  try { ts = JSON.parse(localStorage.getItem(RATE_LIMIT_KEY) || '[]'); } catch (e) { ts = []; }
-  ts = ts.filter(t => now - t < RATE_LIMIT_WINDOW);
-  if (ts.length >= RATE_LIMIT_MAX) {
-    const resetIn = Math.ceil((ts[0] + RATE_LIMIT_WINDOW - now) / 60000);
-    throw new Error('对话次数已达每小时上限，约 ' + resetIn + ' 分钟后恢复。');
-  }
-  ts.push(now);
-  localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(ts));
-}
-async function callLLM(messages, options) {
-  options = options || {};
-  const maxTokens = options.maxTokens || 500;
-  const temperature = (options.temperature === undefined) ? 0.7 : options.temperature;
-  if (!aiReady()) throw new Error('AI 功能未配置');
-  if (!guardHost()) throw new Error('AI 功能已停用');
-  checkRateLimit();
-  const res = await fetch(LLM_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _rK() },
-    body: JSON.stringify({
-      model: LLM_MODEL,
-      messages: messages,
-      thinking: { type: 'disabled' },        // mimo-v2.5-pro 必须关闭思考，否则 content 为空
-      max_completion_tokens: maxTokens,      // 参数名映射：max_tokens → max_completion_tokens
-      temperature: temperature
-    })
-  });
-  if (!res.ok) {
-    let err = 'AI 服务繁忙 (' + res.status + ')';
-    try { const j = await res.json(); err = (j.error && j.error.message) || j.message || err; } catch (e) {}
-    throw new Error(err);
-  }
-  return await res.json();
-}
-
-// ============================================================
-// 终极考核：AI 家长自由对话（小宇妈妈）
-// ============================================================
-function renderRoleplayHTML() {
-  return '<div class="dialogue-container" id="finalDialogue">' +
-    '<div class="dialogue-header"><span>📞 家长沟通 · 自由对话（家长：小宇妈妈）</span>' +
-      '<div class="dialogue-meta"><span class="badge badge-primary">🔄 对话轮数：<b id="finalRound">0</b></span>' +
-      '<span class="badge badge-warning" id="finalTopicBadge">📍 当前话题：-</span></div></div>' +
-    '<div class="dialogue-messages" id="finalMessages">' +
-      '<div class="chat-msg system" style="justify-content:center"><div class="chat-bubble" style="background:#F8FAFC;color:var(--text-secondary);max-width:90%;text-align:center">点击「开始通话」后，小宇妈妈将接通，对话会显示在这里。至少完成 4 轮交流再结束评分。</div></div></div>' +
-    '<div class="dialogue-input-area" id="finalInputArea">' +
-      '<input type="text" id="finalInput" placeholder="输入你要对家长说的话..." disabled onkeypress="if(event.key===\'Enter\')sendFinalMessage()">' +
-      '<button class="btn" id="finalSendBtn" onclick="sendFinalMessage()" disabled>发送</button></div>' +
-    '</div>' +
-    '<div class="final-actions" style="margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
-      '<button class="btn btn-success final-call-btn" id="finalStartBtn" onclick="startFinalConversation()">📞 开始通话</button>' +
-      '<button class="btn" id="finalEndBtn" onclick="endFinalConversation()" disabled>🛑 结束并评分</button>' +
-      '<button class="btn btn-outline" onclick="resetFinalConversation()">🔄 重新开始</button></div>' +
-    '<div class="ai-feedback-panel" id="finalFeedback"></div>';
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function renderFinalMessage(role, text) {
-  const container = document.getElementById('finalMessages');
-  if (!container) return;
-  const div = document.createElement('div');
-  div.className = 'chat-msg ' + (role === 'lp' ? 'lp' : 'parent');
-  const label = role === 'lp' ? '班主任 · 我' : '小宇妈妈';
-  const avatar = role === 'lp' ? '我' : '妈';
-  div.innerHTML = '<div class="chat-avatar">' + avatar + '</div><div class="chat-content">' +
-    '<div class="chat-label">' + label + '</div><div class="chat-bubble">' + escapeHtml(text) + '</div></div>';
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
-}
-
-function showFinalTyping(show) {
-  let el = document.getElementById('finalTyping');
-  if (!show) { if (el) el.remove(); return; }
-  if (el) return;
-  const container = document.getElementById('finalMessages');
-  if (!container) return;
-  el = document.createElement('div');
-  el.id = 'finalTyping';
-  el.className = 'chat-msg parent';
-  el.innerHTML = '<div class="chat-avatar">妈</div><div class="chat-content"><div class="chat-label">小宇妈妈</div>' +
-    '<div class="typing-indicator"><span></span><span></span><span></span></div></div>';
-  container.appendChild(el);
-  container.scrollTop = container.scrollHeight;
-}
-
-function updateFinalTopic() {
-  const lastAi = finalMessages.filter(m => m.role === 'assistant').pop();
-  const lastText = lastAi ? lastAi.content : '';
-  let topic = '开场寒暄';
-  for (const t of APP.topicTags) {
-    if (t.kw && t.kw.some(k => lastText.indexOf(k) !== -1)) { topic = t.name; break; }
-  }
-  const badge = document.getElementById('finalTopicBadge');
-  if (badge) badge.textContent = '📍 当前话题：' + topic;
-  return topic;
-}
-
-function getFinalFallbackReply(userText) {
-  for (const pair of APP.fallbackReplies) {
-    if (pair[0].some(k => userText.indexOf(k) !== -1)) return pair[1];
-  }
-  return '嗯，我听明白了。不过这件事我还得再想想，你能再跟我说说具体怎么安排吗？';
-}
-
-async function startFinalConversation() {
-  if (finalConversationStarted || finalAiScoring) return;
-  finalConversationStarted = true;
-  finalMessages = [{ role: 'system', content: APP.finalSystemPrompt }];
-  finalRound = 0;
-  document.getElementById('finalStartBtn').disabled = true;
-  document.getElementById('finalInput').disabled = false;
-  document.getElementById('finalSendBtn').disabled = false;
-  document.getElementById('finalEndBtn').disabled = false;
-  document.getElementById('finalMessages').innerHTML = '';
-  showFinalTyping(true);
-  let reply = '喂，你好，请问哪位？';
-  try {
-    const data = await callLLM(finalMessages, { maxTokens: 200, temperature: 0.75 });
-    reply = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || '').trim() || reply;
-  } catch (e) {
-    showToast('AI 家长暂时无法接通，已切换为脚本模拟回复', 'warning');
-  } finally {
-    showFinalTyping(false);
-  }
-  finalMessages.push({ role: 'assistant', content: reply });
-  renderFinalMessage('parent', reply);
-  updateFinalTopic();
-  saveProgress();
-}
-
-async function sendFinalMessage() {
-  if (!finalConversationStarted || finalAiScoring || finalTaskSubmitted) return;
-  const input = document.getElementById('finalInput');
-  const text = (input.value || '').trim();
-  if (!text) return;
-  input.value = '';
-  renderFinalMessage('lp', text);
-  finalMessages.push({ role: 'user', content: text });
-  finalRound++;
-  document.getElementById('finalRound').textContent = finalRound;
-  document.getElementById('finalInput').disabled = true;
-  document.getElementById('finalSendBtn').disabled = true;
-  showFinalTyping(true);
-  let reply;
-  try {
-    const data = await callLLM(finalMessages, { maxTokens: 200, temperature: 0.75 });
-    reply = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || '').trim() || getFinalFallbackReply(text);
-  } catch (e) {
-    reply = getFinalFallbackReply(text);
-    showToast('AI 服务暂时不可用，已切换为脚本模拟回复', 'warning');
-  } finally {
-    showFinalTyping(false);
-    if (!finalTaskSubmitted) {
-      document.getElementById('finalInput').disabled = false;
-      document.getElementById('finalSendBtn').disabled = false;
-      document.getElementById('finalInput').focus();
-    }
-  }
-  finalMessages.push({ role: 'assistant', content: reply });
-  renderFinalMessage('parent', reply);
-  updateFinalTopic();
-  saveProgress();
-}
-
-async function endFinalConversation() {
-  if (!finalConversationStarted || finalAiScoring || finalTaskSubmitted) return;
-  if (finalRound < 4) { showToast('请至少完成 4 轮对话再结束评分', 'warning'); return; }
-  finalAiScoring = true;
-  document.getElementById('finalInput').disabled = true;
-  document.getElementById('finalSendBtn').disabled = true;
-  document.getElementById('finalEndBtn').disabled = true;
-  showToast('正在调用 AI 评分官...', 'success');
-  await scoreFinalConversation();
-}
-
-async function scoreFinalConversation() {
-  const dialogue = finalMessages
-    .filter(m => m.role === 'user' || m.role === 'assistant')
-    .map(m => (m.role === 'user' ? '班主任' : '小宇妈妈') + '：' + m.content).join('\n');
-  const scoringPrompt = APP.scoringPrompt.replace('{dialogue}', dialogue);
-  try {
-    const data = await callLLM([
-      { role: 'system', content: '你是一位严格而公正的评分官，只输出合法 JSON，不要任何多余文字。' },
-      { role: 'user', content: scoringPrompt }
-    ], { maxTokens: 800, temperature: 0.3 });
-    const raw = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || '').trim();
-    let result = {};
-    try {
-      const m = raw.match(/\{[\s\S]*\}/);
-      result = JSON.parse(m ? m[0] : raw);
-    } catch (e) { console.warn('AI 评分 JSON 解析失败：', raw); }
-    const sc = parseInt(result.score, 10);
-    finalScore = Math.min(100, Math.max(0, isNaN(sc) ? 65 : sc));
-    finalBreakdown = result.breakdown || null;
-    finalFeedbackText = result.feedback || '已完成考核。';
-  } catch (e) {
-    console.error('AI 评分失败：', e);
-    finalScore = 0;
-    finalBreakdown = null;
-    finalFeedbackText = 'AI 评分服务暂时不可用，本次未获得评分。请点击「重新开始」再试一次。';
-  } finally {
-    finalAiScoring = false;
-    if (finalScore > 0) finalTaskSubmitted = true;
-    renderFinalScore();
-    saveProgress();
-    updateSidebarLocks();
-    if (finalTaskSubmitted) checkCertificate();
-  }
-}
-
-function renderFinalScore() {
-  const fb = document.getElementById('finalFeedback');
-  if (!fb) return;
-  if (!finalTaskSubmitted) {
-    fb.innerHTML = '<div style="padding:16px;background:#FEF2F2;border-radius:8px;font-size:14px;color:#991B1B;text-align:center">' + escapeHtml(finalFeedbackText) + '</div>';
-    fb.classList.add('show');
-    return;
-  }
-  const score = finalScore;
-  const level = score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low';
-  const levelText = score >= 80 ? '优秀！理念讲得清楚，例子到位，家长顾虑处理得体。'
-    : score >= 60 ? '通过！整体说明完整，说服细节还可以再打磨。'
-    : '还需要更多练习，建议回顾前几章后重新开始。';
-  const bd = finalBreakdown || {};
-  const dim = (k, label) => '<div class="final-score-card"><div class="score">' + (bd[k] === undefined ? '—' : bd[k]) + '</div><div class="label">' + label + '</div></div>';
-  fb.innerHTML =
-    '<div class="score-display"><div class="score-circle ' + level + '">' + score + '</div>' +
-    '<div style="font-size:13px;color:var(--text-secondary);margin-top:4px">综合评分</div></div>' +
-    '<p style="text-align:center;font-size:14px;margin-bottom:16px;font-weight:600">' + levelText + '</p>' +
-    '<div class="final-score-grid">' + dim('理论', '理论准确性 /30') + dim('说服', '说服力 /30') +
-    dim('亲合', '服务亲和力 /25') + dim('视角', '家长视角 /15') + '</div>' +
-    '<div class="final-feedback-text"><strong>AI 评分官点评：</strong><br>' + escapeHtml(finalFeedbackText) + '</div>' +
-    (score >= 60
-      ? '<div style="margin-top:16px;padding:14px;background:#ECFDF5;border-radius:8px;font-size:14px;color:#065F46;text-align:center"><strong>✅ 考核通过！</strong> 点击右下角「完成课程」即可领取结业证书。</div>'
-      : '<div style="margin-top:16px;padding:14px;background:#FEF2F2;border-radius:8px;font-size:14px;color:#991B1B;text-align:center"><strong>📖 本次未通过。</strong> 请点击「重新开始」，回顾前面的章节后再试一次。</div>');
-  fb.classList.add('show');
-}
-
-function resetFinalConversation() {
-  finalConversationStarted = false;
-  finalTaskSubmitted = false;
-  finalScore = 0;
-  finalBreakdown = null;
-  finalFeedbackText = '';
-  finalRound = 0;
-  finalMessages = [];
-  finalAiScoring = false;
-  const c = document.getElementById('finalMessages');
-  if (c) c.innerHTML = '<div class="chat-msg system" style="justify-content:center"><div class="chat-bubble" style="background:#F8FAFC;color:var(--text-secondary);max-width:90%;text-align:center">点击「开始通话」后，小宇妈妈将接通，对话会显示在这里。至少完成 4 轮交流再结束评分。</div></div>';
-  document.getElementById('finalInput').value = '';
-  document.getElementById('finalInput').disabled = true;
-  document.getElementById('finalSendBtn').disabled = true;
-  document.getElementById('finalEndBtn').disabled = true;
-  document.getElementById('finalStartBtn').disabled = false;
-  document.getElementById('finalRound').textContent = '0';
-  document.getElementById('finalTopicBadge').textContent = '📍 当前话题：-';
-  const fb = document.getElementById('finalFeedback');
-  fb.classList.remove('show'); fb.innerHTML = '';
-  updateSidebarLocks(); saveProgress();
-}
-
-function restoreFinalConversation() {
-  if (!finalConversationStarted) return;
-  const container = document.getElementById('finalMessages');
-  if (!container) return;
-  container.innerHTML = '';
-  finalMessages.forEach(m => {
-    if (m.role === 'system') return;
-    if (m.role === 'user') renderFinalMessage('lp', m.content);
-    if (m.role === 'assistant') renderFinalMessage('parent', m.content);
-  });
-  document.getElementById('finalRound').textContent = finalRound;
-  updateFinalTopic();
-  if (finalTaskSubmitted) {
-    document.getElementById('finalInput').disabled = true;
-    document.getElementById('finalSendBtn').disabled = true;
-    document.getElementById('finalEndBtn').disabled = true;
-    document.getElementById('finalStartBtn').disabled = true;
-    renderFinalScore();
-  } else {
-    document.getElementById('finalStartBtn').disabled = true;
-    document.getElementById('finalInput').disabled = false;
-    document.getElementById('finalSendBtn').disabled = false;
-    document.getElementById('finalEndBtn').disabled = false;
-  }
-}
 
 // ============================================================
 // 计时器 / 标签页 / 笔记
@@ -990,14 +665,6 @@ function saveProgress() {
     fillAnswers: fillAnswers,
     fillDone: fillDone,
     drillAnswers: drillAnswers,
-    finalTaskSubmitted: finalTaskSubmitted,
-    finalScore: finalScore,
-    finalBreakdown: finalBreakdown,
-    finalFeedbackText: finalFeedbackText,
-    finalConversationStarted: finalConversationStarted,
-    finalMessages: finalMessages,
-    finalRound: finalRound,
-    finalAiScoring: false,
     currentSection: currentSection
   };
   try { localStorage.setItem(LS_PREFIX + '_progress', JSON.stringify(state)); } catch (e) {}
@@ -1014,13 +681,6 @@ function loadProgress() {
       fillAnswers = saved.fillAnswers || {};
       fillDone = false;
       drillAnswers = saved.drillAnswers || {};
-      finalTaskSubmitted = saved.finalTaskSubmitted || false;
-      finalScore = saved.finalScore || 0;
-      finalBreakdown = saved.finalBreakdown || null;
-      finalFeedbackText = saved.finalFeedbackText || '';
-      finalConversationStarted = saved.finalConversationStarted || false;
-      finalMessages = saved.finalMessages || [];
-      finalRound = saved.finalRound || 0;
       currentSection = saved.currentSection || 0;
       // 兼容旧数据：有完成标记但没有答题记录 → 重置测验状态
       const hasDoneButNoAnswers = chapterQuizDone.some(d => d) && Object.keys(chapterQuizAnswers).length === 0;
@@ -1037,7 +697,6 @@ function loadProgress() {
       }
       restoreFillUI();
       restoreDrillUI();
-      restoreFinalConversation();
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       const section = document.querySelector('.section[data-section="' + currentSection + '"]');
       if (section) section.classList.add('active');
@@ -1057,18 +716,19 @@ function loadProgress() {
 // 结业证书
 // ============================================================
 function checkCertificate() {
-  const allDone = completedSections.size >= courseData.sections.length
-    && finalFillsDone() && finalTaskSubmitted && finalScore >= 60;
+  const allDone = completedSections.size >= courseData.sections.length && finalFillsDone() && finalDrillsDone();
   if (!allDone) return;
   setTimeout(() => {
     showToast('🏆 恭喜完成全部课程！点击领取结业证书', 'success');
-    // 证书口径：章节测验（12 题）+ 家长说明填空（3 题）+ 情境演练 + AI 对话得分
+    // 证书口径：章节测验（12 题）+ 家长说明填空（3 题）+ 情境演练（4 个）
     const mcqTotal = chapterQuizzes.reduce((n, qs) => n + (qs ? qs.length : 0), 0);
     const fills = APP.finalFills || [];
     const fillN = fills.filter((f, i) => fillAnswers[i] && fillAnswers[i].correct).length;
+    const drills = APP.scenarioDrills || [];
+    const drillN = drills.filter(d => drillAnswers[d.id] && drillAnswers[d.id].passed).length;
     document.getElementById('certScore').textContent =
       '综合评定：通过（章节测验 ' + mcqTotal + '/' + mcqTotal + ' · 填空题 ' + fillN + '/' + fills.length + '）';
-    document.getElementById('certFinalScore').textContent = 'AI 家长沟通考核得分：' + finalScore + ' 分';
+    document.getElementById('certFinalScore').textContent = '情境应答演练：已通过 ' + drillN + '/' + drills.length + ' 个场景';
     document.getElementById('certDate').textContent = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
     const savedName = localStorage.getItem(LS_PREFIX + '_student_name');
     if (savedName) {

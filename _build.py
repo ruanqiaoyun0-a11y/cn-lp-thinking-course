@@ -28,17 +28,10 @@ def build_app_data():
         'title': C.COURSE_TITLE,
         'lsPrefix': C.LS_PREFIX,
         'orgName': C.ORG_NAME,
-        'aiBaseUrl': 'https://api.xiaomimimo.com/v1',
-        'aiModel': 'mimo-v2.5-pro',
-        'allowedHosts': ['ruanqiaoyun0-a11y.github.io', 'localhost', '127.0.0.1'],
         'sections': C.SECTIONS,
         'chapterQuizzes': C.CHAPTER_QUIZZES,
         'finalFills': C.CH5_FILLS,
         'levelLibrary': C.STAGE_LIBRARY,
-        'finalSystemPrompt': C.FINAL_SYSTEM_PROMPT,
-        'scoringPrompt': C.SCORING_PROMPT,
-        'fallbackReplies': C.FALLBACK_REPLIES,
-        'topicTags': C.TOPIC_TAGS,
         'scenarioDrills': C.SCENARIO_DRILLS,
     }
 
@@ -89,14 +82,16 @@ def main():
         problems.append('缺少第 5 章填空题挂载点 #fillQuizContainer5')
     if 'levelLibrary' not in html:
         problems.append('缺少第 4 章阶段速查库挂载点 #levelLibrary')
-    if 'roleplayContainer' not in html:
-        problems.append('缺少终极考核挂载点')
     if 'scenarioDrillContainer' not in html:
         problems.append('缺少情境应答演练挂载点 #scenarioDrillContainer')
     if 'placeholder="MIMO_API_KEY"' in html:
         problems.append('异常：出现密钥占位串')
-    if "'__MIMO_API_KEY__'" not in html:
-        problems.append('缺少密钥注入占位符 __MIMO_API_KEY__（_build.js 需要）')
+    if '__MIMO_API_KEY__' in html or 'MIMO_API_KEY' in html:
+        problems.append('异常：本课程无 AI 对练，不应出现密钥占位符')
+    # 复习课不含 AI 对练，须确认相关挂载点已彻底移除
+    for stale_id in ('roleplayContainer', 'finalDialogue', 'finalStartBtn', 'finalMessages', 'finalSystemPrompt', 'scoringPrompt', 'fallbackReplies', 'topicTags'):
+        if stale_id in html:
+            problems.append('残留 AI 对练相关代码：%s' % stale_id)
     # 章节 / 题目数量：题目 DOM 由 JS 运行时生成，校验生成模板与数据条数
     if "chquiz-' + chIdx + '-' + qi" not in js:
         problems.append('缺少题目 DOM 生成模板')
@@ -142,11 +137,8 @@ def main():
         problems.append('缺少填空题 DOM 生成模板')
     if 'submitFill' not in js:
         problems.append('缺少填空题提交处理函数')
-    # 终评维度标签必须与本课四维一致（防止沿用旧课标签）
-    for lbl in ('理论准确性', '说服力', '服务亲和力', '家长视角'):
-        if lbl not in js:
-            problems.append('终评维度标签缺失：%s' % lbl)
-    for stale in ('流程规范性', '信息准确性', '话题覆盖度'):
+    # 终评维度标签：本课无 AI 对练，须确认旧课的四维评分标签已彻底移除
+    for stale in ('流程规范性', '信息准确性', '话题覆盖度', '理论准确性', '服务亲和力'):
         if stale in js:
             problems.append('残留旧课终评维度标签：%s' % stale)
     # 明文密钥

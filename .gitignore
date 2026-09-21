@@ -8,6 +8,7 @@ _slides/
 _videos/
 _shot_*.png
 _shot.js
+_shotrun.sh
 _cdp_*.js
 _server.js
 *.log

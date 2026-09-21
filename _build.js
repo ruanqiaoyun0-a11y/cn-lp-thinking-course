@@ -52,13 +52,26 @@ function main() {
   }
   let html = fs.readFileSync(TARGET, 'utf8');
 
+  // 本课程为「复习」定位，已移除 AI 家长对练 → 无需注入密钥。
+  // 若 index.html 中既无占位符也无 _HEX_KEY 注入点，直接跳过（不视为错误）。
+  const hasPlaceholder = html.includes(PLACEHOLDER);
+  const hasInjectPoint = /const _HEX_KEY = '[0-9a-fA-F]+';/.test(html);
   if (checkOnly) {
-    const injected = !html.includes(PLACEHOLDER);
+    if (!hasPlaceholder && !hasInjectPoint) {
+      console.log('本课程无 AI 对练，无需注入密钥（正常跳过）。');
+      process.exit(0);
+    }
+    const injected = !hasPlaceholder;
     const hasPlain = /sk-[A-Za-z0-9]{20,}/.test(html);
     console.log('index.html 存在：是');
     console.log('密钥已注入：' + (injected ? '是' : '否（仍是占位符）'));
     console.log('明文密钥计数：' + (hasPlain ? '⚠️ 发现' : '0（正常）'));
     process.exit(injected && !hasPlain ? 0 : 2);
+  }
+
+  if (!hasPlaceholder && !hasInjectPoint) {
+    console.log('本课程无 AI 对练，无需注入密钥（已跳过）。');
+    return;
   }
 
   const key = loadKey();
@@ -76,12 +89,7 @@ function main() {
     html = html.replace(PLACEHOLDER, "'" + hex + "'");
   } else {
     // 已注入过：用新 hex 覆盖旧值（支持轮换密钥）
-    const re = /const _HEX_KEY = '[0-9a-fA-F]+';/;
-    if (!re.test(html)) {
-      console.error('未找到 _HEX_KEY 注入点，请检查 index.html 是否被改动。');
-      process.exit(1);
-    }
-    html = html.replace(re, "const _HEX_KEY = '" + hex + "';");
+    html = html.replace(/const _HEX_KEY = '[0-9a-fA-F]+';/, "const _HEX_KEY = '" + hex + "';");
   }
   fs.writeFileSync(TARGET, html, { encoding: 'utf8' });
   // 绝不打印 key 或 hex
