@@ -1,0 +1,221 @@
+/* ============================================================
+   《思维学习理念复习》微课 · 补充样式（叠加在 _shell.css 之上）
+   主题：国内 LP · 简体中文 · 大陆用语
+   ============================================================ */
+
+/* ---------------- 话术模板（可填空位） ---------------- */
+.script-tpl{background:#F1F5F9;border-left:4px solid var(--primary);padding:16px 20px;border-radius:8px;font-size:14px;line-height:2;color:#334155;margin:14px 0}
+.script-tpl .var{color:#B45309;font-weight:700;border-bottom:1px dashed #D97706;padding:0 2px}
+
+/* ---------------- 家长原话 ---------------- */
+.quote-line{background:#FEF3C7;border-radius:8px;padding:12px 16px;font-weight:600;color:#92400E;margin:12px 0;font-size:14px;line-height:1.8}
+.quote-line::before{content:'💬 家长原话：';font-weight:700}
+
+/* ---------------- 反思框 ---------------- */
+.reflect-box{background:linear-gradient(135deg,#EEF2FF,#E0E7FF);border-left:4px solid var(--primary);padding:18px 22px;border-radius:8px;margin:20px 0;font-size:14px;line-height:1.9}
+.reflect-box .rt{font-weight:700;color:var(--primary-dark);display:block;margin-bottom:6px;font-size:15px}
+
+/* ---------------- 场景激活框（章首） ---------------- */
+.activate-box{background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border:1px dashed #F59E0B;border-radius:10px;padding:18px 22px;margin:0 0 20px;font-size:14px;line-height:1.9}
+.activate-box .at{font-weight:700;color:#B45309;display:block;margin-bottom:6px;font-size:15px}
+
+/* ---------------- 表格 ---------------- */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+table th,table td{border:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top;line-height:1.7}
+table th{background:#EEF2FF;font-weight:700;color:var(--primary-dark);white-space:nowrap}
+table tbody tr:nth-child(even) td{background:#F8FAFC}
+tr.tr-hot td{background:#FEF3C7!important;font-weight:600;color:#92400E}
+
+/* ---------------- 概念定义卡 ---------------- */
+.def-card{background:linear-gradient(135deg,#EEF2FF,#F5F3FF);border:1px solid #C7D2FE;border-radius:14px;padding:24px 26px;margin:20px 0}
+.def-card .def-q{font-size:17px;font-weight:800;color:var(--primary-dark);margin-bottom:12px;line-height:1.6}
+.def-card .def-a{font-size:14px;line-height:1.95;color:#334155}
+.def-card .def-key{background:#FEF08A;padding:0 4px;font-weight:700;border-radius:3px}
+
+/* 数学方法网格 */
+.method-grid{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.method-chip{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--primary-dark);box-shadow:var(--shadow)}
+.method-chip.hot{background:#EEF2FF;border-color:#C7D2FE}
+
+/* ---------------- 逆向思维演示（方案一/二） ---------------- */
+.choice-demo{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0}
+.choice-demo .cd-item{flex:1;min-width:180px;background:var(--card);border:2px solid var(--border);border-radius:12px;padding:18px;box-shadow:var(--shadow)}
+.choice-demo .cd-item.cd-best{border-color:var(--success);background:linear-gradient(160deg,#ECFDF5,#FFFFFF)}
+.cd-item .cd-tag{display:inline-block;font-size:12px;font-weight:800;border-radius:999px;padding:3px 12px;margin-bottom:10px;background:#F1F5F9;color:#475569}
+.cd-item.cd-best .cd-tag{background:#D1FAE5;color:#065F46}
+.cd-item .cd-h{font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px}
+.cd-item .cd-d{font-size:13px;line-height:1.8;color:#475569}
+
+/* ---------------- 好处卡片（五宫格） ---------------- */
+.benefit-grid{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0}
+.benefit-card{flex:1;min-width:170px;background:var(--card);border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:12px;padding:18px 16px;box-shadow:var(--shadow)}
+.benefit-card .bc-ico{font-size:24px;margin-bottom:8px}
+.benefit-card .bc-h{font-size:15px;font-weight:800;color:var(--primary-dark);margin-bottom:8px}
+.benefit-card .bc-b{font-size:13px;line-height:1.8;color:#475569}
+
+/* ---------------- 好处详解分块 ---------------- */
+.why-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin:16px 0;box-shadow:var(--shadow)}
+.why-block .wb-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.why-block .wb-ico{flex:0 0 auto;width:34px;height:34px;line-height:34px;text-align:center;border-radius:10px;background:var(--primary-light);font-size:18px}
+.why-block .wb-h{font-size:16px;font-weight:800;color:var(--primary-dark)}
+.why-block .wb-b{font-size:14px;line-height:1.95;color:#334155}
+.why-block .wb-b strong{color:var(--primary-dark)}
+
+/* ---------------- 三大理由（政策/战略/脑科学） ---------------- */
+.reason-cards{display:flex;gap:14px;flex-wrap:wrap;margin:20px 0}
+.reason-card{flex:1;min-width:210px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.reason-card .rc-tag{position:absolute;top:0;right:0;background:var(--primary);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:0 12px 0 12px}
+.reason-card.rc-a{border-top:4px solid var(--primary)}
+.reason-card.rc-b{border-top:4px solid var(--accent)}
+.reason-card.rc-b .rc-tag{background:var(--accent)}
+.reason-card.rc-c{border-top:4px solid var(--success)}
+.reason-card.rc-c .rc-tag{background:var(--success)}
+.reason-card .rc-h{font-size:16px;font-weight:800;color:var(--text);margin:6px 0 10px;line-height:1.5}
+.reason-card .rc-b{font-size:13.5px;line-height:1.85;color:#475569}
+.reason-card .rc-k{display:inline-block;background:var(--accent-light);color:#92400E;font-weight:800;border-radius:6px;padding:2px 8px;margin:6px 2px 0}
+
+/* 数据强调框 */
+.stat-box{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+.stat-item{flex:1;min-width:150px;background:#F8FAFC;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.stat-item .st-n{font-size:24px;font-weight:800;color:var(--primary);line-height:1.2}
+.stat-item .st-l{font-size:12.5px;color:var(--text-secondary);margin-top:6px;line-height:1.6}
+
+/* ---------------- 皮亚杰四阶段（横向时间轴） ---------------- */
+.stage-axis{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin:20px 0}
+.axis-node{flex:1;min-width:150px;background:#F8FAFC;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;position:relative}
+.axis-node .an-age{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.axis-node .an-h{font-size:14.5px;font-weight:800;color:var(--primary-dark);margin-bottom:6px;line-height:1.5}
+.axis-node .an-d{font-size:12.5px;color:#475569;line-height:1.7}
+.axis-node.an-hot{background:linear-gradient(160deg,#FFFBEB,#FFFFFF);border:2px solid #F59E0B}
+.axis-arrow{flex:0 0 auto;align-self:center;font-size:18px;color:var(--accent);font-weight:800}
+
+/* ---------------- 幼儿 / 小学生特点双栏 ---------------- */
+.two-trait{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}
+.trait-box{flex:1;min-width:250px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;box-shadow:var(--shadow)}
+.trait-box .tb-head{font-size:16px;font-weight:800;color:var(--primary-dark);margin-bottom:6px}
+.trait-box .tb-sub{font-size:12.5px;color:var(--text-secondary);margin-bottom:12px}
+.trait-box.tb-b{border-top:4px solid var(--accent)}
+.trait-box.tb-b .tb-head{color:#B45309}
+
+/* 特点条目 */
+.trait-list{margin:0;padding:0;list-style:none}
+.trait-list li{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--border);font-size:13.5px;line-height:1.8;color:#334155}
+.trait-list li:last-child{border-bottom:none}
+.trait-list .tl-k{flex:0 0 auto;font-weight:800;color:var(--primary-dark);background:#EEF2FF;border-radius:6px;padding:2px 9px;font-size:12.5px;white-space:nowrap}
+.trait-list .tl-k.amber{color:#92400E;background:#FEF3C7}
+
+/* ---------------- 引导式教学四法 ---------------- */
+.teach-flow{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
+.teach-item{flex:1;min-width:170px;background:var(--card);border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:12px;padding:18px 16px;box-shadow:var(--shadow)}
+.teach-item .ti-n{width:28px;height:28px;line-height:28px;text-align:center;border-radius:8px;background:var(--primary-light);color:var(--primary-dark);font-weight:800;font-size:14px;margin-bottom:8px}
+.teach-item .ti-h{font-size:15px;font-weight:800;color:var(--primary-dark);margin-bottom:8px}
+.teach-item .ti-b{font-size:13px;line-height:1.8;color:#475569}
+
+/* ---------------- 家长沟通：四大说明角度 ---------------- */
+.angle-cards{display:flex;flex-wrap:wrap;gap:14px;margin:20px 0}
+.angle-card{flex:1;min-width:240px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 20px;box-shadow:var(--shadow);border-left:5px solid var(--primary)}
+.angle-card .ac-h{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;color:var(--primary-dark);margin-bottom:6px}
+.angle-card .ac-core{font-size:13px;color:var(--text-secondary);background:#F8FAFC;border-radius:8px;padding:8px 12px;margin-bottom:12px;line-height:1.7}
+.angle-card .ac-say{font-size:13.5px;line-height:1.95;color:#334155}
+.angle-card .ac-say::before{content:'🗣 可以这样说：';display:block;font-weight:800;color:var(--accent);font-size:12.5px;margin-bottom:4px}
+.angle-card.ac-2{border-left-color:var(--accent)}
+.angle-card.ac-3{border-left-color:var(--success)}
+.angle-card.ac-4{border-left-color:#7C3AED}
+
+/* 说法对照（这么说更好） */
+.say-compare{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+.say-col{flex:1;min-width:230px;border-radius:10px;padding:16px 18px;font-size:13.5px;line-height:1.85}
+.say-col.say-bad{background:#FEF2F2;border:1px solid #FECACA}
+.say-col.say-good{background:#ECFDF5;border:1px solid #A7F3D0}
+.say-col .sc-h{font-weight:800;margin-bottom:8px;font-size:13.5px}
+.say-col.say-bad .sc-h{color:#B91C1C}
+.say-col.say-good .sc-h{color:#065F46}
+.say-col ul{margin:0;padding-left:18px}
+.say-col li{margin-bottom:5px}
+
+/* ---------------- 情境应答演练 ---------------- */
+.drill-section{margin:20px 0}
+.drill-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin:14px 0;box-shadow:var(--shadow)}
+.drill-card .dc-h{font-size:15px;font-weight:800;color:var(--primary-dark);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.drill-card .dc-h .dc-n{flex:0 0 auto;width:26px;height:26px;line-height:26px;text-align:center;border-radius:50%;background:var(--primary);color:#fff;font-size:13px;font-weight:800}
+.drill-parent{background:#FEF3C7;border-radius:10px;padding:14px 16px;font-size:14px;font-weight:600;color:#92400E;line-height:1.8;margin-bottom:14px;position:relative}
+.drill-parent::before{content:'👩 家长问：';font-weight:800}
+.drill-textarea{width:100%;min-height:110px;padding:14px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:14px;line-height:1.8;resize:vertical;font-family:inherit;box-sizing:border-box}
+.drill-textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.drill-textarea:disabled{background:#F1F5F9;color:#475569}
+.drill-actions{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.drill-feedback{display:none;margin-top:14px;padding:14px 16px;border-radius:10px;font-size:13.5px;line-height:1.9}
+.drill-feedback.show{display:block}
+.drill-feedback.good{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
+.drill-feedback.refer{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}
+.drill-feedback .df-h{font-weight:800;margin-bottom:6px}
+.drill-feedback .df-ref{background:#EEF2FF;color:var(--primary-dark);border-radius:8px;padding:10px 12px;margin-top:8px;line-height:1.9;font-size:13px}
+.drill-progress{text-align:center;margin:16px 0;font-size:14px;color:var(--text-secondary)}
+
+/* ---------------- 阶段速查库（JS 渲染的折叠卡片） ---------------- */
+#levelLibrary{margin:16px 0}
+.level-grid{display:flex;flex-direction:column;gap:12px}
+.level-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.level-card.is-hot{border:2px solid #F59E0B}
+.level-card-h{display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;user-select:none;background:#F8FAFC;flex-wrap:wrap}
+.level-card.is-hot .level-card-h{background:linear-gradient(160deg,#FFFBEB,#FFFFFF)}
+.level-card-h:hover{background:#EEF2FF}
+.level-card.is-hot .level-card-h:hover{background:#FEF3C7}
+.level-card-h .lv-badge{flex:0 0 auto;min-width:56px;height:44px;line-height:44px;padding:0 8px;text-align:center;border-radius:10px;background:var(--primary);color:#fff;font-weight:800;font-size:14px}
+.level-card.is-hot .lv-badge{background:#D97706}
+.level-card-h .lv-title{flex:1;min-width:120px}
+.level-card-h .lv-title b{display:block;font-size:15px;font-weight:800;color:var(--text)}
+.level-card-h .lv-title span{font-size:12.5px;color:var(--text-secondary)}
+.level-card-h .lv-caret{flex:0 0 auto;font-size:14px;color:var(--text-secondary);transition:transform .2s}
+.level-card.open .level-card-h .lv-caret{transform:rotate(180deg)}
+.level-card-body{display:none;padding:0 18px 18px;font-size:14px;line-height:1.9;color:#334155}
+.level-card.open .level-card-body{display:block}
+.level-card-body .lv-sec{margin-top:14px}
+.level-card-body .lv-sec-h{font-size:13.5px;font-weight:800;color:var(--primary-dark);margin-bottom:6px}
+.level-card-body ul{margin:6px 0 0;padding-left:20px}
+.level-card-body li{font-size:13.5px;line-height:1.85;color:#475569;margin-bottom:3px}
+.lv-tip{margin-top:12px;font-size:12.5px;background:#EEF2FF;border-radius:8px;padding:10px 12px;color:var(--primary-dark);line-height:1.75}
+
+/* ---------------- 终极考核 · 填空题 ---------------- */
+.fill-card{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin:16px 0;box-shadow:var(--shadow)}
+.fill-card.ok{border-color:var(--success);background:#F6FEFB}
+.fill-card .quiz-question{margin-bottom:14px}
+.fill-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.fill-input{flex:1;min-width:180px;padding:12px 16px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-family:inherit;line-height:1.5}
+.fill-input:focus{border-color:var(--primary-light);outline:none;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+.fill-input:disabled{background:#F1F5F9;color:#065F46;font-weight:600;border-color:#A7F3D0}
+.fill-hint{display:block;margin-top:8px;color:#92400E;background:#FFFBEB;border-left:3px solid var(--accent);padding:8px 12px;border-radius:0 6px 6px 0;font-size:13px;line-height:1.7}
+
+/* 章节测验「答错重做」 */
+.quiz-retry{margin-top:10px}
+.quiz-retry .btn{margin-left:0}
+
+/* ================= 移动端（≤1024px） ================= */
+@media (max-width:1024px){
+  .reason-cards,.two-trait,.benefit-grid,.teach-flow,.stage-axis,.angle-cards,.say-compare,.choice-demo,.stat-box{flex-direction:column}
+  .reason-card,.trait-box,.benefit-card,.teach-item,.axis-node,.angle-card,.say-col,.cd-item,.stat-item{min-width:0}
+  .axis-arrow{transform:rotate(90deg);align-self:center}
+  .script-tpl,.quote-line,.reflect-box,.activate-box{font-size:13px;padding:14px 16px}
+  .def-card{padding:18px 16px}
+  table{font-size:12px}
+  table th,table td{padding:8px}
+  table th{white-space:normal}
+  .table-wrap table{min-width:520px}
+
+  .level-card-h .lv-badge{min-width:48px;height:40px;line-height:40px;font-size:12.5px}
+  .level-card-body .lv-stuck{font-size:12.5px}
+
+  .main{padding-bottom:100px}
+  .section-nav-buttons{flex-direction:column;gap:10px;position:sticky;bottom:0;z-index:20;
+    background:var(--bg);padding:12px 0;border-top:1px solid var(--border);margin-top:24px}
+  .section-nav-buttons>div{width:100%}
+  .section-nav-buttons .btn{width:100%;text-align:center;padding:14px 24px;font-size:15px}
+  .dialogue-input-area{padding-bottom:4px}
+
+  .fill-card{padding:18px 16px}
+  .fill-row{flex-direction:column;align-items:stretch}
+  .fill-row .btn,.fill-input{width:100%}
+  .drill-card{padding:16px}
+  .drill-actions .btn{flex:1;min-width:120px}
+}
