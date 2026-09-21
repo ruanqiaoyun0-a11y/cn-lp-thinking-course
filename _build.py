@@ -70,7 +70,6 @@ def build_app_data():
         'orgName': C.ORG_NAME,
         'sections': C.SECTIONS,
         'chapterQuizzes': C.CHAPTER_QUIZZES,
-        'finalFills': C.CH5_FILLS,
         'levelLibrary': C.STAGE_LIBRARY,
         'scenarioDrills': C.SCENARIO_DRILLS,
     }
@@ -134,8 +133,6 @@ def main():
         problems.append('script 标签缺失')
     if 'quiz-locked-hint' not in html:
         problems.append('缺少串行锁定样式/提示')
-    if 'fillQuizContainer5' not in html:
-        problems.append('缺少第 5 章填空题挂载点 #fillQuizContainer5')
     if 'levelLibrary' not in html:
         problems.append('缺少第 4 章阶段速查库挂载点 #levelLibrary')
     if 'scenarioDrillContainer' not in html:
@@ -161,14 +158,24 @@ def main():
                 problems.append('第 %d 章第 %d 题字段缺失' % (i + 1, qi + 1))
             elif not (0 <= q['correct'] < len(q['opts'])):
                 problems.append('第 %d 章第 %d 题 correct 越界' % (i + 1, qi + 1))
-    # 填空题校验
-    if not C.CH5_FILLS:
-        problems.append('缺少第 5 章填空题数据')
-    for fi, f in enumerate(C.CH5_FILLS):
-        if not all(k in f for k in ('q', 'answer', 'hint')):
-            problems.append('第 %d 道填空字段缺失' % (fi + 1))
-        elif not f['answer']:
-            problems.append('第 %d 道填空没有可接受答案' % (fi + 1))
+    # 终极考核：第 5 章必须是选择题（原为填空题，已改造）
+    ch5 = C.CHAPTER_QUIZZES[4] if len(C.CHAPTER_QUIZZES) > 4 else []
+    if not ch5:
+        problems.append('第 5 章终极考核缺少选择题数据')
+    if len(ch5) != 3:
+        problems.append('第 5 章终极考核选择题应为 3 道（当前 %d）' % len(ch5))
+    for qi, q in enumerate(ch5):
+        if len(q.get('opts', [])) < 3:
+            problems.append('终极考核第 %d 题选项不足 3 个' % (qi + 1))
+    # 第 5 章必须渲染选择题（type 为 content_quiz）
+    if C.SECTIONS[-1]['type'] != 'content_quiz':
+        problems.append('末章 type 应为 content_quiz（当前 %s）' % C.SECTIONS[-1]['type'])
+    # 填空题残留扫描：已整体改为选择题，任何填空相关代码都不应再出现
+    for stale_fill in ('CH5_FILLS', 'fillQuizContainer', 'mountFillQuiz', 'renderFillQuiz',
+                       'submitFill', 'fillInput-', 'fillAnswers', 'finalFills',
+                       '填空题', 'fill-card', 'fill-row'):
+        if stale_fill in js or stale_fill in html:
+            problems.append('残留填空题相关代码：%s' % stale_fill)
     # 阶段速查库校验（皮亚杰四阶段）
     if len(C.STAGE_LIBRARY) != 4:
         problems.append('阶段速查库阶段数不为 4（当前 %d）' % len(C.STAGE_LIBRARY))
@@ -189,10 +196,10 @@ def main():
         problems.append('缺少情境应答演练渲染函数')
     if 'submitDrill' not in js:
         problems.append('缺少情境应答演练提交处理函数')
-    if 'fillInput-' not in js:
-        problems.append('缺少填空题 DOM 生成模板')
-    if 'submitFill' not in js:
-        problems.append('缺少填空题提交处理函数')
+    if 'finalMcqDone' not in js:
+        problems.append('缺少终极考核选择题完成判定函数 finalMcqDone')
+    if 'chapterQuizStatusHtml' not in js:
+        problems.append('缺少测验状态条渲染函数 chapterQuizStatusHtml')
     # 终评维度标签：本课无 AI 对练，须确认旧课的四维评分标签已彻底移除
     for stale in ('流程规范性', '信息准确性', '话题覆盖度', '理论准确性', '服务亲和力'):
         if stale in js:
@@ -202,8 +209,11 @@ def main():
         problems.append('严重：index.html 中出现明文密钥 sk-...')
 
     print('章节数：', len(C.SECTIONS))
-    print('选择题总数：', sum(len(x) for x in C.CHAPTER_QUIZZES))
-    print('填空题总数（第 5 章）：', len(C.CH5_FILLS))
+    print('选择题总数：', sum(len(x) for x in C.CHAPTER_QUIZZES),
+          '（第 1-4 章各 %d/%d/%d/%d 题 · 第 5 章终极考核 %d 题）'
+          % (len(C.CHAPTER_QUIZZES[0]), len(C.CHAPTER_QUIZZES[1]),
+             len(C.CHAPTER_QUIZZES[2]), len(C.CHAPTER_QUIZZES[3]),
+             len(C.CHAPTER_QUIZZES[4])))
     print('阶段速查库：', len(C.STAGE_LIBRARY), '阶段（皮亚杰四阶段）')
     print('情境应答演练：', len(C.SCENARIO_DRILLS), '个场景')
     print('内嵌配图：', len(FIGURES), '张（第 1 章题图）')
