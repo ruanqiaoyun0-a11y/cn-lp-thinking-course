@@ -4,6 +4,7 @@ _build.py — 组装 index.html
 用法：python _build.py [--check]
   --check  只校验，不写文件
 """
+import base64
 import json
 import os
 import re
@@ -17,10 +18,49 @@ import _content as C  # noqa: E402
 OUT = os.path.join(HERE, 'index.html')
 CHECK_ONLY = '--check' in sys.argv
 
+# 内嵌配图（单文件交付物，不留外部依赖）
+FIGURES = {
+    'FIG_BEANS': ('_assets/fig_ch1_beans.png', '第 1 章「挑豆子」题图（300 粒豆子）'),
+}
+
 
 def read(name):
     with open(os.path.join(HERE, name), 'r', encoding='utf-8') as f:
         return f.read()
+
+
+def read_figure(relpath):
+    """读取图片并转为 data URI，供内嵌进 index.html。"""
+    p = os.path.join(HERE, relpath)
+    if not os.path.isfile(p):
+        return None
+    with open(p, 'rb') as f:
+        b64 = base64.b64encode(f.read()).decode('ascii')
+    return 'data:image/png;base64,' + b64
+
+
+def inject_figures(html):
+    """把 {{FIG_XXX}} 占位符替换为内嵌 <img>。
+
+    占位符位于课程数据（CH1 正文）里，最终会被整体 JSON 序列化，
+    因此注入的 HTML 必须按 JSON 字符串上下文转义（"，\\ 等）。
+    返回 (html, 未命中的占位符说明列表)。
+    """
+    missing = []
+    for key, (relpath, alt) in FIGURES.items():
+        token = '{{' + key + '}}'
+        if token not in html:
+            continue
+        uri = read_figure(relpath)
+        if uri is None:
+            missing.append('%s（缺少文件 %s）' % (key, relpath))
+            continue
+        img = ('<img src="' + uri + '" alt="' + alt + '" onclick="zoomFigure(this)">'
+               '<figcaption>' + alt + ' <span class="zoom-hint">· 点击放大</span></figcaption>')
+        # JSON 字符串上下文转义：先转义反斜杠，再转义双引号
+        img_json = img.replace('\\', '\\\\').replace('"', '\\"')
+        html = html.replace(token, img_json)
+    return html, missing
 
 
 def build_app_data():
@@ -70,10 +110,26 @@ def main():
         + '</body>\n</html>\n'
     )
 
+    # ---------- 内嵌配图 ----------
+    html, fig_missing = inject_figures(html)
+
     # ---------- 校验 ----------
     problems = []
+    for m in fig_missing:
+        problems.append('配图内嵌失败：%s' % m)
     if re.search(r'\{\{[A-Z_]+\}\}', html):
         problems.append('存在未替换的 {{PLACEHOLDER}} 占位符')
+    # 第 1 章配图必须存在（挑豆子题图）
+    # 注意：题图位于 CH1 内容里，会随课程数据整体 JSON 序列化，
+    # 因此 HTML 中的引号被转义为 \" —— 匹配时用宽松正则。
+    if not re.search(r'class=\\?"q-figure\\?"', html):
+        problems.append('缺少第 1 章「挑豆子」题图容器 .q-figure')
+    elif 'data:image/png;base64,' not in html:
+        problems.append('第 1 章配图未内嵌为 data URI')
+    if 'id=\\"figZoomOverlay\\"' not in html and 'id="figZoomOverlay"' not in html:
+        problems.append('缺少题图放大预览容器 #figZoomOverlay')
+    if 'onclick=\\"zoomFigure(this)\\"' not in html and 'onclick="zoomFigure(this)"' not in html:
+        problems.append('题图未绑定放大交互 onclick="zoomFigure(this)"')
     if '<script' not in html or '</script>' not in html:
         problems.append('script 标签缺失')
     if 'quiz-locked-hint' not in html:
@@ -150,6 +206,7 @@ def main():
     print('填空题总数（第 5 章）：', len(C.CH5_FILLS))
     print('阶段速查库：', len(C.STAGE_LIBRARY), '阶段（皮亚杰四阶段）')
     print('情境应答演练：', len(C.SCENARIO_DRILLS), '个场景')
+    print('内嵌配图：', len(FIGURES), '张（第 1 章题图）')
     print('index.html 字节数：', len(html.encode('utf-8')))
     if problems:
         print('\n❌ 校验未通过：')

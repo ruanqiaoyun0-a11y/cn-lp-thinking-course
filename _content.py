@@ -31,9 +31,10 @@ CH1 = '''
 
 <div class="activate-box">
   <span class="at">🔎 先做一道题，找找感觉</span>
-  假设图中有三百粒豆子，想知道里面有多少绿豆，你会选择哪种方案？<br>
+  看下面这张图——碗里有三百粒豆子，想知道里面有多少<strong>绿豆</strong>，你会选择哪种方案？<br>
   <strong>方案一：挑出绿豆。方案二：挑出红豆。</strong><br>
   想一想再往下看——你会选哪个，为什么？
+  <figure class="q-figure">{{FIG_BEANS}}</figure>
 </div>
 
 <div class="card">

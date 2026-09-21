@@ -790,4 +790,25 @@ function toggleSidebar() {
   document.getElementById('sidebarOverlay').classList.toggle('show');
 }
 
+// ---------------- 题图放大预览 ----------------
+function zoomFigure(img) {
+  if (!img) return;
+  const ov = document.getElementById('figZoomOverlay');
+  if (!ov) return;
+  const big = document.createElement('img');
+  big.src = img.getAttribute('src');
+  big.alt = img.getAttribute('alt') || '';
+  // 清掉上一张（保留关闭按钮）
+  ov.querySelectorAll('img').forEach(el => el.remove());
+  ov.appendChild(big);
+  ov.classList.add('show');
+}
+function closeZoomFigure() {
+  const ov = document.getElementById('figZoomOverlay');
+  if (ov) ov.classList.remove('show');
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeZoomFigure();
+});
+
 document.addEventListener('DOMContentLoaded', init);

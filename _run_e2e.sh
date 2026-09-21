@@ -17,6 +17,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# 0) 干掉可能残留的 8123 监听（否则新服务起不来，旧课程会被静默服务）
+OLD_PID=$(netstat -ano | grep ":8123 " | grep LISTENING | awk '{print $NF}' | head -1)
+if [ -n "$OLD_PID" ]; then
+  echo "[port] 释放残留监听 PID=$OLD_PID"
+  taskkill //F //PID "$OLD_PID" >/dev/null 2>&1
+  sleep 1
+fi
+
 # 1) 静态服务
 "$NODE" _server.js > /tmp/_srv.log 2>&1 &
 SRV_PID=$!
@@ -24,6 +32,14 @@ sleep 2
 CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$PORT/index.html")
 echo "[server] http://127.0.0.1:$PORT/index.html -> $CODE"
 [ "$CODE" = "200" ] || { echo "静态服务启动失败"; exit 1; }
+
+# 1b) 校验服务的确是本课程（防止端口被别的课程占用）
+SERVED_TITLE=$(curl -s --noproxy '*' "http://127.0.0.1:$PORT/index.html" | grep -o '<title>[^<]*</title>' | head -1)
+echo "[server] $SERVED_TITLE"
+case "$SERVED_TITLE" in
+  *"思维学习理念复习"*) : ;;
+  *) echo "❌ 服务返回的不是本课程页面（可能端口被其它课程占用）：$SERVED_TITLE"; exit 1 ;;
+esac
 
 # 2) headless Chrome
 rm -rf "$PROF"

@@ -23,6 +23,9 @@
 </div></div>
 
 <button class="notes-toggle" onclick="toggleNotes()">📝</button>
+<div class="fig-zoom-overlay" id="figZoomOverlay" onclick="if(event.target===this)closeZoomFigure()">
+<button class="fz-close" onclick="closeZoomFigure()" aria-label="关闭">✕</button>
+</div>
 <div class="notes-panel" id="notesPanel">
 <h3>📝 学习笔记 — <span id="notesChapterLabel" style="font-weight:400;font-size:13px;color:var(--text-secondary)"></span></h3>
 <textarea id="notesTextarea" placeholder="在这里记录你的学习心得..."></textarea>

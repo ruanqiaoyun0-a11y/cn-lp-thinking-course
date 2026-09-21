@@ -9,6 +9,8 @@ _videos/
 _shot_*.png
 _shot.js
 _shotrun.sh
+_probe.js
+_proberun.sh
 _cdp_*.js
 _server.js
 *.log
