@@ -17,7 +17,7 @@
 
 COURSE_TITLE = '思维学习理念复习'
 LS_PREFIX = 'cn_lp_thinking'
-ORG_NAME = 'VIPTHINK'
+ORG_NAME = '豌豆思维'
 
 # ============================================================
 # 第一章：什么是数学思维
